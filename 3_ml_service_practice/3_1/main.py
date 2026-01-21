@@ -26,6 +26,32 @@ class TaskStatus(Enum):
     FAILED = "Failed"
     VALIDATION_ERROR = "ValidationError"
 
+# =============================================
+# Класс Баланс
+# =============================================
+class Balance:
+    def __init__(self, amount: float):
+        if amount < 0:
+            raise ValueError("Баланс не может быть отрицательным")
+        self._amount = amount
+
+    @property
+    def amount(self) -> float:
+        return self._amount
+
+    def is_enough(self, amount: float) -> bool:
+        """Проверка достаточности средств на балансе."""
+        if amount < 0:
+            raise ValueError("Сумма для проверки не может быть отрицательной")
+        return self._amount >= amount
+
+    def update(self, amount: float) -> bool:
+        """Обновляет баланс пользователя. Возвращает True, если операция успешна.
+             amount: положительное — пополнение, отрицательное — списание."""
+        if self._amount + amount < 0:
+            return False
+        self._amount += amount
+        return True
 
 # =============================================
 # Класс Пользователь
@@ -37,7 +63,7 @@ class User:
         self._email = email
         self._password_hash = password_hash  # пароль должен храниться в хэшированном виде
         self._role = role
-        self._balance = 0.0
+        self._balance = Balance(0.0)
         self._registration_date = datetime.datetime.now()
 
     # Геттеры для доступа к приватным полям
@@ -58,22 +84,9 @@ class User:
         return self._role
 
     @property
-    def balance(self) -> float:
+    def balance(self) -> Balance:
         return self._balance
 
-    def is_enough_balance(self, amount: float) -> bool:
-        """Проверка достаточности средств на балансе."""
-        if amount < 0:
-            raise ValueError("Сумма для проверки не может быть отрицательной")
-        return self._balance >= amount
-
-    def update_balance(self, amount: float) -> bool:
-        """Обновляет баланс пользователя. Возвращает True, если операция успешна.
-             amount: положительное — пополнение, отрицательное — списание."""
-        if self._balance + amount < 0:
-            return False
-        self._balance += amount
-        return True
 
     def check_password(self, password_hash: str) -> bool:
         """Сравнивает переданный хэш пароля с хранимым."""
@@ -150,17 +163,21 @@ class Transaction:
 # Класс Задача ML (основная бизнес-сущность)
 # =============================================
 class MLTask:
-    def __init__(self, task_id: int, user: User, model: MLModel, input_data: Dict[str, Any]):
+    def __init__(self, task_id: int, user: User, model: MLModel, input_data: Dict[str, Any], balance: Balance):
         self._task_id = task_id
         self._user = user
         self._model = model
         self._input_data = input_data  # данные для предсказания
+        self._balance = balance
         self._status = TaskStatus.WAITING
         self._prediction_result: Optional[Dict[str, Any]] = None  # выдаёт либо словарь, либо None
         self._validation_errors: List[str] = []
         self._created_at = datetime.datetime.now()
         self._processed_at: Optional[datetime.datetime] = None
         self._transaction: Optional[Transaction] = None  # связь с транзакцией списания
+        self._error_reason: Optional[str] = None
+        self._refund_transaction: Optional[Transaction] = None
+        self._refund_amount: Optional[float] = None
 
     @property
     def task_id(self) -> int:
@@ -180,8 +197,8 @@ class MLTask:
 
     def validate_balance(self) -> bool:
         """Проверяет, достаточно ли у пользователя средств для выполнения задачи."""
-        if not self._user.is_enough_balance(self.cost):
-            self._validation_errors.append(f"Недостаточно средств: требуется {self.cost}, доступно {self._user.balance}")
+        if not self._balance.is_enough(self.cost):
+            self._validation_errors.append(f"Недостаточно средств: требуется {self.cost}, доступно {self._balance.amount}")
             self._status = TaskStatus.FAILED
             return False
         return True
@@ -213,7 +230,7 @@ class MLTask:
             return False
 
         # если проверки пройдены, списываем средства и создаем транзакцию
-        if self._user.update_balance(-self.cost):
+        if self._balance.update(-self.cost):
             # Создаём транзакцию списания
             self._transaction = Transaction(
                 transaction_id=hash((self._task_id, self._user.user_id, self._created_at.timestamp())),
@@ -252,7 +269,7 @@ class MLTask:
         if self._transaction and self._transaction.amount < 0:
             refund_amount = -self._transaction.amount  # Положительная сумма для возврата
             #  возврат средств на баланс
-            self._user.update_balance(refund_amount)
+            self._balance.update(refund_amount)
             # Создаём транзакцию возврата
             self._refund_transaction = Transaction(
                 transaction_id=hash((self._task_id, self._user.user_id, self._processed_at.timestamp(), "refund")),
