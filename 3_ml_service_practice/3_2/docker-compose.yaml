@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+ # backend-приложение
+  app:
+    build: ./app/  #  путь к Dockerfile, собственный образ
+    container_name: container-app
+    restart: unless-stopped
+    env_file:
+      - ./app/.env
+    volumes:
+      - ./app:/app  # подключение исходных файлов
+    networks:
+      - event-planner-network
+
+
+# Web-service (reverse proxy (Nginx))
+  web-proxy-nginx:
+    image: nginx:latest
+    container_name: container-web
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./web-proxy-nginx/nginx.conf:/etc/nginx/nginx.conf
+      # - . /web-proxy-nginx/ssl:/etc/web-proxy-nginx/ssl
+    networks:
+      - event-planner-network
+
+# брокер сообщений
+  rabbitmq:
+    image: rabbitmq:latest  # 3.8-management
+    container_name: container-rabbitmq
+    ports:
+      - "15672:15672"  # management UI панель управления
+      - "5672:5672"    # AMQP
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq  # сохранение данных очередей после перезапуска
+    # command: rabbitmq-server
+    restart: on-failure
+    networks:
+      - event-planner-network
+
+# база данных PostgreSQL
+  database:
+    image: postgres:13
+    container_name: container-database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: 12345   # ← Обязательно!
+      POSTGRES_DB: database_name               # Опционально: имя БД
+      POSTGRES_USER: user                 # Опционально: создать пользователя
+    volumes:
+      - ./database:/var/lib/database  # сохраняем базу данных
+    networks:
+      - event-planner-network
+
+# Networks
+networks:
+  event-planner-network:
+     name: event-planner-network
+     driver: bridge
