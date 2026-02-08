@@ -12,6 +12,7 @@ from ml_model import MLModel
 from enums import UserRole, TaskStatus, TransactionType
 from ml_task import MLTask
 from transaction import Transaction
+from balance import Balance
 
 
 if __name__ == "__main__":
@@ -29,8 +30,8 @@ if __name__ == "__main__":
                                      email="demo@mail.ru",
                                      password_hash="demo",
                                      role=UserRole.USER,
-                                     balance=Decimal('0.00'),   # начальный баланс для пользователей
                                      registration_date =datetime.datetime.now())
+
         # список моделей
         demo_model =MLModel(model_name = 'LLM',
                                                cost_per_prediction = Decimal('100.00'),
@@ -44,12 +45,18 @@ if __name__ == "__main__":
         user = session.query(User).filter_by(user_name="demo").first()
         print(f"Результат выполнения запроса: {user.user_id}, {user.user_name}")
 
-        # пополнеие баланса
-        transaction = Transaction.top_up_balance(user=demo_user, amount=200)
-        session.add(transaction)
+
+        # инициализация баланса
+        demo_user_balance = Balance(
+            user_id=demo_user.user_id,
+            amount=Decimal('0.00')
+        )
+        session.add(demo_user_balance)
         session.commit()
 
-        transaction = Transaction.top_up_balance(user=demo_user, amount=50)
+        # пополнеие баланса
+        demo_user_balance.amount += 200
+        transaction = Transaction.top_up_balance(user=demo_user, amount=200)
         session.add(transaction)
         session.commit()
 
@@ -58,12 +65,11 @@ if __name__ == "__main__":
         #session.add(transaction)
         #session.commit()
 
-
         #  получить модель для работы
         model = session.query(MLModel).first()
 
-        if (demo_user.balance <= model.cost_per_prediction):
-            raise Exception (f"Не достаточно средств: на балансе{demo_user.balance}, стоимость операции {model.cost_per_prediction}")
+        if (demo_user_balance.amount <= model.cost_per_prediction):
+            raise Exception (f"Не достаточно средств: на балансе {demo_user_balance.amount}, стоимость операции {model.cost_per_prediction}")
 
 
         # отправить в модель данные для предсказания
@@ -82,7 +88,8 @@ if __name__ == "__main__":
 
 
         # списание c баланса денег за предсказание
-        transaction = Transaction.spend_balance(user=demo_user, amount=70)
+        demo_user_balance.amount -= 70
+        transaction = Transaction.top_up_balance(user=demo_user, amount=70)
         session.add(transaction)
         session.commit()
 
