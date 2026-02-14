@@ -17,10 +17,11 @@ class User(Base):
     email = Column(String)
     password_hash = Column(String)
     role = Column(Enum(UserRole))
-    balance = Column(Numeric(precision=15, scale=2), default=Decimal(0.0))
+    # balance = Column(Numeric(precision=15, scale=2), default=Decimal(0.0))
     registration_date = Column(String)  #datetime.datetime.now()
     # ORM-связь с классом Transaction
     transactions = relationship("Transaction", back_populates="user")
+    balance = relationship("Balance", back_populates="user")
 
 
     def check_password(self, password_hash: str) -> bool:

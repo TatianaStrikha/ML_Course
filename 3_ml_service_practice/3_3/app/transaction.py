@@ -30,7 +30,6 @@ class Transaction(Base):
          if amount <= 0:
                     raise ValueError("Сумма пополнения должна быть положительной")
 
-         user.balance += amount
          # SQLAlchemy сам добавит транзакцию в сессию (если transaction  добавлена в сессию session.add(transaction))
          transaction = Transaction(
                     user=user,
@@ -47,7 +46,6 @@ class Transaction(Base):
          if amount <= 0:
                     raise ValueError("Сумма списания должна быть положительной")
 
-         user.balance -= amount
          # SQLAlchemy сам добавит транзакцию в сессию (если transaction  добавлена в сессию session.add(transaction))
          transaction = Transaction(
                     user=user,
