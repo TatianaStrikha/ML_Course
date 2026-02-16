@@ -1,5 +1,3 @@
-import asyncio
-import random
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import get_session

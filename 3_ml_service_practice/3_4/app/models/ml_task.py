@@ -2,13 +2,9 @@
 # ORM таблица ML таски
 # =============================================
 import datetime
-import time
-
-from .enums import UserRole, TaskStatus, TransactionType
-#from user import User
-from typing import List, Optional, Any, Dict
+from .enums import TaskStatus
 from database.database import mapper_registry
-from sqlalchemy import Column, Integer, String, Enum, Float, Numeric, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 @mapper_registry.mapped
