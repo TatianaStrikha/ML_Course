@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+ # backend-приложение
+  app:
+    build: ./app/  #  путь к Dockerfile, кастомный образ
+    container_name: container-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app  # подключение исходных файлов
+    depends_on:
+      - database
+    networks:
+      - event-planner-network
+
+
+# Web-service (reverse proxy (Nginx))
+  web-proxy-nginx:
+    image: nginx:latest
+    container_name: container-web
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./web-proxy-nginx/nginx.conf:/etc/nginx/nginx.conf
+      # - . /web-proxy-nginx/ssl:/etc/web-proxy-nginx/ssl
+    networks:
+      - event-planner-network
+
+# брокер сообщений
+  rabbitmq:
+    image: rabbitmq:3.13.1-management
+    container_name: container-rabbitmq
+    restart: on-failure
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648
+    ports:
+      - "15672:15672"  # management UI панель управления
+      - "5672:5672"    # AMQP
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq  # сохранение данных очередей после перезапуска
+    # command: rabbitmq-server
+    networks:
+      - event-planner-network
+
+# база данных PostgreSQL
+  database:
+    image: postgres:16-alpine
+    container_name: container-database
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./database:/var/lib/database  # сохраняем базу данных
+    networks:
+      - event-planner-network
+
+# воркер
+  ml_worker:
+    build:
+      context: .  # Контекст сборки — корень всего проекта, чтобы воркер видел папки app и database
+      dockerfile: ./ml_worker/Dockerfile
+    container_name: event-planner-ml-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - .:/src                     # Монтируем весь корень проекта в папку /src
+    working_dir: /src              # Указываем /src как рабочую директорию
+    command: python -m ml_worker.main # Запускаем как модуль из корня
+    depends_on:
+      - database
+      - rabbitmq
+    networks:
+      - event-planner-network
+
+
+# Networks
+networks:
+  event-planner-network:
+     name: event-planner-network
+     driver: bridge
