@@ -1,5 +1,3 @@
-import asyncio
-import random
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import get_session
@@ -72,6 +70,22 @@ async def run_prediction(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@ml_task_router.get(
+    "/{task_id}",
+    response_model=MLTaskReadSchema,
+    summary="Получение информации о задаче по id"
+)
+async def get_task(task_id: int,db_session: AsyncSession = Depends(get_session)):
+    task = await MLTaskCRUD.get_by_id(db_session, task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Задача не найдена"
+        )
+    return task
+
 
 
 @ml_task_router.get(
