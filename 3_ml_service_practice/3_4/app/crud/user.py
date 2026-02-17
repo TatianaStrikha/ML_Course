@@ -1,14 +1,13 @@
 # =============================================
-# Функции с пользователями для использования в ендпоинтах
+# Функции с пользователями для использования в эндпоинтах
 # =============================================
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from app.models.user import User
 from app.models.balance import Balance
-from app.schemas import UserAuthSchema, UserReadSchema
+from app.schemas import UserAuthSchema
 import bcrypt
 from datetime import datetime
-import time
 import logging
 
 

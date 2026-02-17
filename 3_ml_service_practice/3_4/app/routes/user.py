@@ -90,11 +90,11 @@ async def get_user_by_id(user_id: int,  db_session: AsyncSession=Depends(get_ses
 
 
 @user_router.get(
-    '/get_user_by_emai',
+    '/get_user_by_email',
     response_model=UserReadSchema,
     summary="Получить пользователя по emai"
 )
-async def get_user_by_emai(email: EmailStr,  db_session: AsyncSession=Depends(get_session)):
+async def get_user_by_email(email: EmailStr,  db_session: AsyncSession=Depends(get_session)):
     """
     Получить активного пользователя по emai
     """

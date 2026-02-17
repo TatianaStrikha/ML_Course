@@ -2,14 +2,13 @@
 # Функции с балансом для использования в эндпоинтах
 # =============================================
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 from app.models.balance import Balance
 from datetime import datetime
 from app.crud.user import UserCRUD
 from decimal import Decimal
 from app.models.transaction import Transaction
-from app.models.enums import TaskStatus, TransactionType
-from sqlalchemy import select, exists
+from app.models.enums import TransactionType
+from sqlalchemy import select
 import logging
 
 

@@ -3,9 +3,8 @@
 # =============================================
 import datetime
 from database.database import mapper_registry
-from .enums import UserRole, TaskStatus, TransactionType
-from typing import List, Optional, Any, Dict
-from sqlalchemy import Column, Integer, String, Enum, Float, Numeric, ForeignKey, DateTime
+from .enums import TransactionType
+from sqlalchemy import Column, Integer, String, Enum, Numeric, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 @mapper_registry.mapped

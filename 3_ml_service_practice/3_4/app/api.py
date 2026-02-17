@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# from app.routes.home import home_router
 from app.routes.user import user_router
 from app.routes.balance import balance_router
 from app.routes.ml_model import ml_model_router
@@ -13,11 +12,6 @@ from contextlib import asynccontextmanager
 import sys, os
 # Добавляем текущую директорию в путь Python
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models.enums import TaskStatus, TransactionType
-from app.models.ml_model import MLModel
-from app.models.ml_task import MLTask
-from app.models.transaction import Transaction
-from app.models.balance import Balance
 
 
 # logger = logging.getLogger(__name__)

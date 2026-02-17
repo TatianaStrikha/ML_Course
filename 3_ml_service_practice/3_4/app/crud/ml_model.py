@@ -4,7 +4,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.ml_model import MLModel
-from app.schemas import MLModelCreateSchema, MLModelReadSchema
+from app.schemas import MLModelCreateSchema
 
 class MLModelCRUD:
     @staticmethod

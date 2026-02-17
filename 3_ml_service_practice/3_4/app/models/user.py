@@ -1,10 +1,7 @@
 # =============================================
 # ORM таблица Пользователи
 # =============================================
-import re
-from datetime import datetime
-from database.database import mapper_registry
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from database.database import mapper_registry
 

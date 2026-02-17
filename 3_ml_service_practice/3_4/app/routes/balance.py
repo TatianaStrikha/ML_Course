@@ -1,16 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from app.crud.balance import BalanceCRUD
 from app.crud.user import UserCRUD
 from  database.database import get_session
-from typing import List, Dict
 import logging
 from app.schemas import BalanceUpdateSchema, BalanceCurrentSchema, TransactionReadSchema
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.models.user import User
-import bcrypt
-from pydantic import EmailStr
 
 
 logger = logging.getLogger("uvicorn.error")
