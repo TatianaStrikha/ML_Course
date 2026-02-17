@@ -85,9 +85,10 @@ class MLTaskCreateSchema(BaseModel):
 
 class MLTaskReadSchema(BaseModel):
     """
-    Схема для получения история запросов к ML-модели
+    Схема для получения истории запросов к ML-модели
     """
     task_id: int
+    user_id: int
     model_id: int
     input_data: str
     status: TaskStatus

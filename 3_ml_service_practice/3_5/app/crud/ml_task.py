@@ -130,6 +130,16 @@ class MLTaskCRUD:
         db_session.add(refund_transaction)
         await db_session.commit()
 
+    @staticmethod
+    async def get_by_id(db_session: AsyncSession, task_id: int) -> MLTask | None:
+        """
+        Получение информации о ML-запросе по его id
+        """
+        result = await db_session.execute(
+            select(MLTask).where(MLTask.task_id == task_id)
+        )
+        return result.scalar_one_or_none()
+
 
     @staticmethod
     async def get_history(db_session: AsyncSession, user_id: int):

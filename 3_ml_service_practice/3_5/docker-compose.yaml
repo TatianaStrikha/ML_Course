@@ -58,9 +58,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
     volumes:
       - ./database:/var/lib/database  # сохраняем базу данных
     networks:
@@ -71,7 +71,7 @@ services:
     build:
       context: .  # Контекст сборки — корень всего проекта, чтобы воркер видел папки app и database
       dockerfile: ./ml_worker/Dockerfile
-    container_name: event-planner-ml-worker
+    container_name:  container-ml-worker
     restart: unless-stopped
     env_file:
       - .env
@@ -84,6 +84,7 @@ services:
       - rabbitmq
     networks:
       - event-planner-network
+
 
 
 # Networks
