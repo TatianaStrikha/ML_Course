@@ -1,5 +1,7 @@
-sqlalchemy
+sqlalchemy[asyncio]
 asyncpg
 pydantic
 pydantic-settings
 aio-pika
+pymorphy3
+pymorphy3-dicts-ru

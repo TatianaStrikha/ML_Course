@@ -1,7 +1,7 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
-
+from functools import lru_cache
 
 class Settings(BaseSettings):
     """ Класс берёт переменные из файла .env используя схему model_config
@@ -18,11 +18,16 @@ class Settings(BaseSettings):
     DEBUG: Optional[bool] = None
     API_VERSION: Optional[str] =None
 
-    # Параметры RabbitMQ
-    RABBITMQ_USER: str = "guest"
-    RABBITMQ_PASS: str = "guest"
-    RABBITMQ_HOST: str = "localhost"
-    RABBITMQ_PORT: int = 5672
+    # параметры RabbitMQ
+    RABBITMQ_USER: Optional[str] =  None
+    RABBITMQ_PASS: Optional [str] =  None
+    RABBITMQ_HOST: Optional[str] =  None
+    RABBITMQ_PORT: Optional[int] =None
+
+    # параметры токенов
+    SECRET_KEY: Optional[str] =  None
+    ALGORITHM: Optional[str] =  None
+    ACCESS_TOKEN_EXPIRE_MINUTES: Optional[int] =None
 
     @property
     def DATABASE_URL(self):
@@ -34,7 +39,7 @@ class Settings(BaseSettings):
         return f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASS}@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/"
 
 
-    # model_config - содержит путь к файлу env, откуда берет данные для подключения к бд
+    # model_config - содержит путь к файлу env и берет от туда данные
     print("Текущий каталог:", os.getcwd())
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -43,6 +48,8 @@ class Settings(BaseSettings):
         extra="ignore" # чтобы Pydantic не ругался на лишние поля в .env
     )
 
+@lru_cache()
 def get_settings() -> Settings:
+    """Получение настроек приложения с кэшированием"""
     settings = Settings()
     return settings

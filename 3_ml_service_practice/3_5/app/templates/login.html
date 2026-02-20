@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Вход - ML Morpho{% endblock %}
+
+{% block content %}
+    <h2>Вход в личный кабинет</h2>
+    
+    {% if error %}
+        <div style="color: red; margin-bottom: 10px;">{{ error }}</div>
+    {% endif %}
+
+    <form action="/login" method="post">
+        <div>
+            <label>Email:</label><br>
+            <input type="email" name="username" required>
+        </div>
+        <br>
+        <div>
+            <label>Пароль:</label><br>
+            <input type="password" name="password" required>
+        </div>
+        <br>
+        <button type="submit">Войти</button>
+    </form>
+    <p>Еще не зарегистрированы? <a href="/signup">Создать аккаунт</a></p>
+{% endblock %}

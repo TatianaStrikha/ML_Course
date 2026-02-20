@@ -11,24 +11,34 @@ services:
     volumes:
       - ./app:/app  # подключение исходных файлов
     depends_on:
-      - database
+       database:
+        condition: service_started
+       rabbitmq:
+        condition: service_healthy
     networks:
       - event-planner-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 
-# Web-service (reverse proxy (Nginx))
-  web-proxy-nginx:
+# Web-service (reverse proxy )
+  nginx:
     image: nginx:latest
     container_name: container-web
     restart: unless-stopped
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./web-proxy-nginx/nginx.conf:/etc/nginx/nginx.conf
-      # - . /web-proxy-nginx/ssl:/etc/web-proxy-nginx/ssl
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      # - . /nginx/ssl:/etc/nginx/ssl
     networks:
       - event-planner-network
 
@@ -49,6 +59,11 @@ services:
     # command: rabbitmq-server
     networks:
       - event-planner-network
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_running" ]
+      interval: 20s
+      timeout: 10s
+      retries: 3
 
 # база данных PostgreSQL
   database:
@@ -80,8 +95,10 @@ services:
     working_dir: /src              # Указываем /src как рабочую директорию
     command: python -m ml_worker.main # Запускаем как модуль из корня
     depends_on:
-      - database
-      - rabbitmq
+      database:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - event-planner-network
 

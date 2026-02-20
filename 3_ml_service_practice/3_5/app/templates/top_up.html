@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Пополнение - ML Morpho{% endblock %}
+
+{% block content %}
+    <h2>Пополнение баланса</h2>
+
+    <p>Ваш текущий баланс: <b>{{ balance.amount}} денег</b></p>
+
+    {% if error %}
+        <div style="color: red; margin-bottom: 10px;">{{ error }}</div>
+    {% endif %}
+
+    <form action="/profile/top_up" method="post" style="border: 1px solid #ccc; padding: 20px; display: inline-block;">
+        <label>Сумма пополнения:</label><br>
+        <input type="number" name="amount" min="1" step="0.01" required style="margin: 10px 0; padding: 5px;">
+        <br>
+        <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px;">
+            Пополнить счет
+        </button>
+    </form>
+    <br><br>
+    <a href="/profile">← Вернуться в профиль</a>
+{% endblock %}

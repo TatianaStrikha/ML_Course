@@ -2,16 +2,25 @@
 # Pydantic схемы
 # =============================================
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from decimal import Decimal
 from app.models.enums import TransactionType,TaskStatus
+import re
 
+class UserRegSchema(BaseModel):
+    """
+    Схема для регистрации пользователей
+    """
+    user_name: str = Field(min_length=1, max_length=20)
+    email: EmailStr #встроенная валидация емейла
+    password: str = Field(min_length=6, max_length=20)
+    # Позволяет Pydantic работать с SQLAlchemy моделями
+    model_config = ConfigDict(from_attributes=True)
 
 class UserAuthSchema(BaseModel):
     """
-    Схема для регистрации/авторизации пользователей
+    Схема для авторизации пользователей
     """
-    user_name: str = Field(min_length=1, max_length=20)
     email: EmailStr #встроенная валидация емейла
     password: str = Field(min_length=6, max_length=20)
     # Позволяет Pydantic работать с SQLAlchemy моделями
@@ -73,14 +82,23 @@ class MLModelReadSchema(MLModelCreateSchema):
     model_id: int
     model_config = ConfigDict(from_attributes=True)
 
-
 class MLTaskCreateSchema(BaseModel):
     """
-    Схема для создания запроса к ML модели
+    Схема валидации входных данных для ML-запроса. Проверка размера текста, и того что введен именно текст.
     """
-    user_id: int
-    model_id: int
-    input_data: str = Field(..., min_length=3, description="Данные для анализа")
+    input_data: str
+    @field_validator("input_data")
+    @classmethod
+    def check_text(cls, v: str) -> str:
+        # 1. Проверка на длину
+        if len(v) > 100:
+            raise ValueError("Ошибка: текст не должен превышать 100 символов.")
+
+        # 2. Проверка на буквы
+        if not re.search(r'[a-zA-Zа-яА-ЯёЁ]', v):
+            raise ValueError("Текст должен содержать буквы, а не только цифры или символы")
+
+        return v.strip()
 
 
 class MLTaskReadSchema(BaseModel):

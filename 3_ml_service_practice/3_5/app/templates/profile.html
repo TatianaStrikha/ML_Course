@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет - ML Morpho{% endblock %}
+
+{% block content %}
+    <h1>Личный кабинет</h1>
+
+    <!-- Блок 1: Информация и баланс -->
+    <div style="border: 1px solid #ccc; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+        <p><strong>Пользователь:</strong> {{ user.user_name }} ({{ user.email }})</p>
+
+        <p><strong>Текущий баланс:</strong>
+            <span style="color: green; font-size: 1.2em; font-weight: bold;">
+                {{ balance.amount}} денег
+            </span>
+        </p>
+
+        <a href="/profile/top_up" style="display: inline-block; padding: 8px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+            Пополнить баланс
+        </a>
+        <p><a href="/profile/transactions">История транзакций</a></p>
+    </div>
+
+
+    <hr style="margin: 30px 0;">
+
+    <!-- Блок 2: Форма для ML-запроса -->
+    <h3>Новый морфологический разбор</h3>
+
+    {% if error %}
+        <div style="color: red; background: #fee; padding: 10px; border: 1px solid red; margin-bottom: 15px;">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if success %}
+        <div style="color: green; background: #efe; padding: 10px; border: 1px solid green; margin-bottom: 15px;">
+            {{ success }}
+        </div>
+    {% endif %}
+
+    <form action="/profile/predict" method="post">
+        <label>Введите текст на русском языке (минимум 1 буква, максимум 100 символов):</label><br>
+        <textarea name="input_text" maxlength="100" rows="4" style="width: 100%; margin-top: 10px; padding: 10px;" required placeholder="Например: Мама мыла раму..."></textarea>
+        <br><br>
+        <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            Запустить анализ ({{ml_model.cost_per_prediction if ml_model else 0}} денег)
+        </button>
+    </form>
+
+    <hr style="margin: 30px 0;">
+
+    <!-- Блок 3: Последние 5 запросов -->
+    <h3>Последние запросы
+            <form action="/profile" method="get" style="display: inline; margin-left: 10px;">
+                    <button type="submit" style="cursor: pointer;">Обновить статус</button>
+            </form>
+    </h3>
+    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+        <thead>
+            <tr style="background: #f2f2f2;">
+                <th>№ запроса</th>
+                <th>Дата</th>
+                <th>Входной текст</th>
+                <th>Статус</th>
+                <th>Результат разбора</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in history %}
+            <tr>
+                <td style="font-size: 0.9em; ">  {{ task.task_id }}</td>
+                <td style="font-size: 0.9em; white-space: nowrap; ">  {{ task.created_at.strftime('%d.%m.%y %H:%M') }}</td>
+                <td style="font-size: 0.9em;  overflow: hidden; max-width: 200px; text-overflow: ellipsis;">{{ task.input_data }}</td>
+                <td style="font-size: 0.9em;">
+                    {# Сравниваем имя статуса (Enum.name) #}
+                    {% if task.status.name == 'COMPLETED' %}
+                        <b style="color: green;">Завершено</b>
+                    {% elif task.status.name == 'IN_PROGRESS' %}
+                        <b style="color: #0056b3;">В работе...</b>
+                    {% elif task.status.name == 'FAILED' %}
+                        <b style="color: red;">Ошибка</b>
+                    {% elif task.status.name == 'WAITING' %}
+                        <b style="color: #666;">В очереди</b>
+                    {% endif %}
+                </td>
+                <td style="font-family: monospace; font-size: 1.1em; background: #fafafa; ">
+                    {% if task.prediction_result %}
+                        {{ task.prediction_result }}
+                    {% else %}
+                        <i style="color: #999;">результат готовится...</i>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: #999;">У вас пока нет запросов</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="/profile/history">История всех запросов</a></p>
+{% endblock %}
