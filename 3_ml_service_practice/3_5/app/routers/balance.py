@@ -3,7 +3,7 @@ from app.crud.balance import BalanceCRUD
 from app.crud.user import UserCRUD
 from  database.database import get_session
 import logging
-from app.schemas import BalanceUpdateSchema, BalanceCurrentSchema, TransactionReadSchema
+from app.crud.schemas import BalanceUpdateSchema, BalanceCurrentSchema, TransactionReadSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

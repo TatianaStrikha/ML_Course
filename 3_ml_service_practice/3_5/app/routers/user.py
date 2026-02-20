@@ -1,12 +1,22 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from app.crud.user import UserCRUD
 from  database.database import get_session
 from typing import Dict
 import logging
-from app.schemas import UserAuthSchema, UserReadSchema
+from app.crud.schemas import UserRegSchema, UserAuthSchema, UserReadSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
+from app.auth.password_hash import PasswordHash
+from app.auth.access_token import set_token_cookie, delete_token_cookie
+from config import get_settings
+from fastapi.security import APIKeyCookie
 
+# Указываем FastAPI, что мы используем куку с именем access_token
+cookie_sec = APIKeyCookie(name="access_token", auto_error=False)
+
+# , dependencies=[Depends(cookie_sec)]
+
+settings = get_settings()
 
 # Создает логгер для вывода сообщений
 logger = logging.getLogger("uvicorn.error")
@@ -23,12 +33,16 @@ user_router = APIRouter()
    status_code=status.HTTP_201_CREATED,
    summary="Регистрация пользователя"
 )
-async def signup(user_data: UserAuthSchema,  db_session: AsyncSession=Depends(get_session))  -> Dict[str, str]:
+async def signup(
+        response: Response,
+        user_data: UserRegSchema,
+        db_session: AsyncSession=Depends(get_session)
+)  -> Dict[str, str]:
     """
     **Регистрация нового пользователя по почте и паролю:**
     1. Валидация email через Pydantic.
     2. Проверка на отсутствие введеного email в БД.
-    3. Пароль хэшируется через bcrypt.
+    3. Пароль хэшируется.
     4. При успешной регистрции автоматически создается нулевой баланс с привязкой к пользователю.
     5. Возможна регистрация удаленного ранее пользователя со старой почтой.
     """
@@ -42,20 +56,24 @@ async def signup(user_data: UserAuthSchema,  db_session: AsyncSession=Depends(ge
     # Создание нового пользователя
 
     await UserCRUD.create(db_session, user_data)
+    # сохраняем токен в куки
+    set_token_cookie(response, user_email=user_data.email)
     logger.info(f"Создан новый пользователь с почтой {user_data.email}")
     return   {"message": "Пользователь успешно зарегистрирован"}
 
 
 
-
-
 @user_router.post(
-    '/signin',
+    '/login',
     summary="Авторизация пользователя"
 )
-async def signin(user_data: UserAuthSchema,  db_session: AsyncSession=Depends(get_session)) -> Dict[str, str]:
+async def login(
+        response: Response,
+        user_data: UserAuthSchema,
+        db_session: AsyncSession=Depends(get_session)
+) -> Dict[str, str]:
     """
-    Авторизация пользователя по почте и паролю
+    Авторизация пользователя по почте и паролю. Запись токена в куки.
     """
     user = await UserCRUD.get_by_email(db_session, user_data.email)
     if user is None:
@@ -65,13 +83,24 @@ async def signin(user_data: UserAuthSchema,  db_session: AsyncSession=Depends(ge
             detail="Данная почта не зарегистрирована"
         )
     # проверка пароля
-    if not UserCRUD.verify_password(user_data.password, user.password_hash):
+    if not PasswordHash.verify(user_data.password, user.password_hash):
         logger.warning(f"Неверный пароль для: {user_data.email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Неверный пароль"
         )
+   # сохраняем токен в куки
+    set_token_cookie(response, user_email=user.email)
     return {"message": "Успешная авторизация"}
+
+
+@user_router.post("/logout", summary="Выход из аккаунта")
+async def logout(response: Response):
+    """
+    Выход из аккауната. Удаление токена из кук.
+    """
+    delete_token_cookie(response)
+    return {"message": "Вы вышли из аккаунта"}
 
 
 @user_router.get(

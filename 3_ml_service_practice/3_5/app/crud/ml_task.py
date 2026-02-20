@@ -35,14 +35,10 @@ class MLTaskCRUD:
         if not balance or balance.amount < ml_model.cost_per_prediction:
             raise ValueError("Недостаточно средств на балансе")
 
-        # 3. Валидация входных данных (заглушка)
-        if len(input_data) < 3:  # Пример: текст слишком короткий
-            raise ValueError("Ошибка валидации данных: текст слишком короткий")
-
-        # 4. Списание средств
+        # 3. Списание средств
         balance.amount -= ml_model.cost_per_prediction
 
-        # 5. Создаем задачу и транзакцию SPEND. Статус WAITING - задача ушла в очередь, но ещё не принята воркером.
+        # 4. Создаем задачу и транзакцию SPEND. Статус WAITING - задача ушла в очередь, но ещё не принята воркером.
         new_task = MLTask(
             user_id=user_id,
             model_id=model_id,
@@ -57,7 +53,7 @@ class MLTaskCRUD:
             user_id=user_id,
             amount=-ml_model.cost_per_prediction,  # Отрицательное число для списания
             transaction_type=TransactionType.SPEND,
-            description=f"Списание за ML-модель {ml_model.model_name}",
+            description=f"Списание средств за задачу № {new_task.task_id}",
             related_task_id=new_task.task_id
         )
         db_session.add(new_transaction)
@@ -94,7 +90,7 @@ class MLTaskCRUD:
 
 
     @staticmethod
-    async def refund(db_session: AsyncSession, task_id: int, error_message: str):
+    async def refund(db_session: AsyncSession, task_id: int, reason: str = "Ошибка"):
         """
         Возврат средств в случае сбоя модели (REFUND).
         """
@@ -117,7 +113,7 @@ class MLTaskCRUD:
 
         # Обновляем статус задачи
         task.status = TaskStatus.FAILED
-        task.prediction_result = f"Error: {error_message}"
+        task.prediction_result = f"Ошибка: {reason}"
 
         # Создаем транзакцию возврата
         refund_transaction = Transaction(
@@ -142,15 +138,18 @@ class MLTaskCRUD:
 
 
     @staticmethod
-    async def get_history(db_session: AsyncSession, user_id: int):
+    async def get_history(db_session: AsyncSession, user_id: int, limit: int = None):
         """
-        Список всех ML-запросов пользователя (от новых к старым)
+        Список всех ML-запросов пользователя (от новых к старым) с возможностью ограничения количества
         """
-        result = await db_session.execute(
-            select(MLTask)
-            .where(MLTask.user_id == user_id)
-            .order_by(MLTask.created_at.desc())
-        )
+        # Создаем базовый запрос с сортировкой от новых к старым
+        query = select(MLTask).where(MLTask.user_id == user_id).order_by(MLTask.created_at.desc())
+
+        # Если передан лимит, добавляем его к запросу
+        if limit:
+            query = query.limit(limit)
+
+        result = await db_session.execute(query)
         return result.scalars().all()
 
 

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}История транзакций{% endblock %}
+
+{% block content %}
+    <h2>Полная история ваших транзакций</h2>
+    <p><a href="/profile" style="text-decoration: none; color: #007bff;">← Вернуться в профиль</a></p>
+
+    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+        <thead>
+            <tr style="background: #f8f9fa;">
+                <th style="white-space: nowrap;">Дата и время</th>
+                <th>Тип</th>
+                <th>Сумма</th>
+                <th>Описание</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td style="white-space: nowrap; ">
+                    {{ tx.created_at.strftime('%d.%m.%Y %H:%M') }}
+                </td>
+                <td>
+                    {# Проверяем по имени Enum  #}
+                    {% if tx.transaction_type.name == 'TOP_UP' %}
+                        <span >Пополнение</span>
+                    {% elif tx.transaction_type.name == 'REFUND' %}
+                        <span >Возврат</span>
+                    {% else %}
+                        <span >Списание</span>
+                    {% endif %}
+                </td>
+                <td >
+                    {{ "+" if tx.amount > 0 }}{{ tx.amount }} денег
+                </td>
+                <td style="font-style: italic;">
+                    {{ tx.description or '---' }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: #999; padding: 20px;">
+                    У вас пока нет ни одной транзакции.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

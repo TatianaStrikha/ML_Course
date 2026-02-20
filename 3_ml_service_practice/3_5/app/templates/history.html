@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Полная история запросов{% endblock %}
+
+{% block content %}
+    <h2>История ваших ML-запросов</h2>
+    <p><a href="/profile" style="text-decoration: none; color: #007bff;">← Вернуться в профиль</a></p>
+
+    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 0.9em; border: 1px solid #ddd;">
+        <thead>
+            <tr style="background: #f2f2f2;">
+                <th>№ запроса</th>
+                <th style="white-space: nowrap;">Дата и время</th>
+                <th>Входной текст</th>
+                <th>Статус</th>
+                <th>Результат морфологического анализа</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in history %}
+            <tr>
+                <td style="font-size: 0.9em; ">  {{ task.task_id }}</td>
+                <td style="white-space: nowrap; font-size: 0.9em;">
+                    {{ task.created_at.strftime('%d.%m.%Y %H:%M') }}
+                </td>
+                <td style="font-size: 0.9em; overflow: hidden; max-width: 200px; text-overflow: ellipsis;">
+                    {{ task.input_data }}
+                </td >
+                <td style="font-size: 0.9em;">
+                    {% if task.status.name == 'COMPLETED' %}
+                        <b style="color: green;">Завершено</b>
+                    {% elif task.status.name == 'IN_PROGRESS' %}
+                        <b style="color: #0056b3;">В работе</b>
+                    {% elif task.status.name == 'FAILED' %}
+                        <b style="color: red;">Ошибка</b>
+                    {% else %}
+                        <b style="color: #666;">В очереди</b>
+                    {% endif %}
+                </td>
+                <td style="font-family: monospace; font-size: 1.1em; background: #fafafa; padding: 10px;overflow: hidden; ">
+                    {% if task.prediction_result %}
+                        {{ task.prediction_result }}
+                    {% else %}
+                        <i style="color: #999;">обработка...</i>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: #999; padding: 20px;">
+                    Вы еще не отправляли запросов на анализ.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+

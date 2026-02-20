@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}ML Morpho{% endblock %}</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+        nav { background: #f4f4f4; padding: 10px; margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #333; }
+        .error { color: red; background: #fee; padding: 10px; border: 1px solid red; margin: 10px 0; }
+        .success { color: green; background: #efe; padding: 10px; border: 1px solid green; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/"><b>ML Service</b></a>
+        {% if user %}
+            <span>Привет, {{ user.user_name }}! </span>
+            <form action="/logout" method="post" style="display:inline;  margin-left: 10px;">
+                    <button type="submit" style="cursor: pointer; padding: 2px 10px;">Выйти</button>
+            </form>
+        {% else %}
+            <a href="/login">Вход</a>
+            <a href="/signup">Регистрация</a>
+        {% endif %}
+    </nav>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

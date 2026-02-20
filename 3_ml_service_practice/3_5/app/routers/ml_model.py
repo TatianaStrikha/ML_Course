@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import get_session
 from app.crud.ml_model import MLModelCRUD
-from app.schemas import MLModelReadSchema, MLModelCreateSchema
+from app.crud.schemas import MLModelReadSchema, MLModelCreateSchema
 import logging
 
 

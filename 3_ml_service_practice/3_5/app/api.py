@@ -1,15 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes.user import user_router
-from app.routes.balance import balance_router
-from app.routes.ml_model import ml_model_router
-from app.routes.ml_task import ml_task_router
+from app.routers.user import user_router
+from app.routers.balance import balance_router
+from app.routers.ml_model import ml_model_router
+from app.routers.ml_task import ml_task_router
 from database.database import init_db
 from config import get_settings
 import uvicorn
 import logging
 from contextlib import asynccontextmanager
 import sys, os
+from fastapi.templating import Jinja2Templates
+from app.routers.web import web_router
+from fastapi import FastAPI, Request, HTTPException, status
+from fastapi.responses import JSONResponse, RedirectResponse
 # Добавляем текущую директорию в путь Python
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,6 +22,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logger = logging.getLogger("uvicorn.error")
 logging.basicConfig(level=logging.INFO)
 settings = get_settings()
+
+
+templates = Jinja2Templates(directory="app/templates")
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,11 +64,30 @@ def create_application() -> FastAPI:
     )
 
     # Регистрация эндпоинтов
-    # app.include_router(home_router, tags=['Home'])
     app.include_router(user_router, prefix='/users', tags=['Пользователи'])
     app.include_router(balance_router, prefix='/balance', tags=['Баланс'])
     app.include_router(ml_model_router, prefix='/ml_model', tags=['ML-модели'])
     app.include_router(ml_task_router, prefix='/ml_task', tags=['Запросы к ML-модели'])
+    app.include_router(web_router, tags=["Web-интерфейс"])
+
+    @app.exception_handler(status.HTTP_401_UNAUTHORIZED)
+    async def unauthorized_exception_handler(request: Request, exc: HTTPException):
+        """Редирект на страницу входа, в случае отсутсвия токена в куках. Только для web-интерфейса"""
+        # Список путей, которые относятся к веб-интерфейсу (HTML)
+        protected_pages = ["profile"]
+
+        # Проверяем, содержит ли текущий URL хотя бы одно слово из списка
+        if any(page in request.url.path for page in protected_pages):
+            # Перенаправляем браузер на страницу входа
+            return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+        # Для всех остальных случаев (Swagger/API) возвращаем стандартный JSON
+
+        # Для обычного REST API (Swagger) возвращаем стандартный JSON
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": exc.detail},
+        )
 
 
     return app
@@ -69,12 +97,8 @@ app = create_application()
 
 
 if __name__ ==  '__main__':
-    # TODO:  запуск из командной строки
-    #  Пр.   uvicorn api:app --reload --port 8899
-    #          http://127.0.0.1:8899/
     logging.basicConfig(level=logging.DEBUG)
     uvicorn.run(
-        #'api:app',
         'app.api:app',
         host='localhost',  # '0.0.0.0'
         port=8080,

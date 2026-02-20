@@ -4,7 +4,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.ml_model import MLModel
-from app.schemas import MLModelCreateSchema
+from app.crud.schemas import MLModelCreateSchema
 
 class MLModelCRUD:
     @staticmethod
@@ -38,4 +38,16 @@ class MLModelCRUD:
         """
         result = await db_session.execute(select(MLModel))
         return result.scalars().all()
+
+    @staticmethod
+    async def get_first_model(db_session: AsyncSession) -> MLModel:
+        """
+        Получает первую доступную ML-модель из базы данных.
+        Если моделей нет — выбрасывает ошибку.
+        """
+        result = await db_session.execute(select(MLModel).limit(1))
+        model = result.scalar_one_or_none()
+        if not model:
+            raise ValueError("В базе данных не найдено ни одной ML-модели. Сначала добавьте модель.")
+        return model
 

@@ -5,23 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.user import User
 from app.models.balance import Balance
-from app.schemas import UserAuthSchema
-import bcrypt
+from app.crud.schemas import UserAuthSchema
 from datetime import datetime
 import logging
+from app.auth.password_hash import PasswordHash
 
 
 logger = logging.getLogger("uvicorn.error")
 
 
 class UserCRUD:
-    @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        """ Сравнивает чистый пароль с хэшем из БД."""
-        password_bytes = plain_password.encode('utf-8')
-        hash_bytes = hashed_password.encode('utf-8')
-        return bcrypt.checkpw(password_bytes, hash_bytes)
-
     @staticmethod
     async def get_by_id(db_session: AsyncSession, user_id: int) -> User | None:
         """
@@ -60,8 +53,7 @@ class UserCRUD:
         """Создание нового пользователя с хешированием пароля.
             И создание баланса спривязкой к пользователю."""
         # Хешируем пароль
-        salt = bcrypt.gensalt()
-        password_hash = bcrypt.hashpw(user_data.password.encode('utf-8'), salt).decode('utf-8')
+        password_hash = PasswordHash.create(user_data.password)
         # добавляем нового пользователя в БД
         new_user = User(
             user_name=user_data.user_name,

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import get_session
 from app.crud.ml_task import MLTaskCRUD
-from app.schemas import MLTaskCreateSchema, MLTaskReadSchema
+from app.crud.ml_model import MLModelCRUD
+from app.crud.schemas import MLTaskReadSchema
 from app.models.enums import TaskStatus
 import logging
 from app.crud.user import UserCRUD
@@ -10,64 +11,71 @@ import json
 from datetime import datetime
 from aio_pika import connect, Message
 from config import get_settings
+from app.auth.access_token import get_current_user
+from app.models.user import User
+from fastapi.security import APIKeyCookie
+from app.crud.schemas import MLTaskCreateSchema
 
+# Указываем FastAPI, что мы используем куку с именем access_token
+cookie_sec = APIKeyCookie(name="access_token", auto_error=False)
 
 logger = logging.getLogger("uvicorn.error")
 ml_task_router = APIRouter()
 
+async def send_to_rabbit(task_id: int, input_text: str, model_id: int):
+    """Функция для работы с очередью"""
+    settings = get_settings()
+    payload = {
+        "task_id": str(task_id),
+        "features": {"input": input_text},
+        "model": model_id,
+        "timestamp": datetime.now().isoformat()
+    }
+    connection = await connect(settings.RABBITMQ_URL)
+    async with connection:
+        channel = await connection.channel()
+        await channel.declare_queue("ml_tasks", durable=True)
+        await channel.default_exchange.publish(
+            Message(json.dumps(payload).encode()),
+            routing_key="ml_tasks"
+        )
 
-@ml_task_router.post("/predict", summary="Запуск ML-предсказания")
+@ml_task_router.post("/predict", summary="Запуск ML-предсказания", dependencies=[Depends(cookie_sec)])
 async def run_prediction(
-        task_data: MLTaskCreateSchema,
-        db_session: AsyncSession = Depends(get_session)
+        input_data: MLTaskCreateSchema,
+        db_session: AsyncSession = Depends(get_session),
+        current_user: User = Depends(get_current_user) # получения объекта User из кук
 ):
     """
     **Механизм работы эндпоинта:**
+    - Работает только для авторизованного пользователя.
+    - user_id берется из кук, id модели по умолчанию 1
     - Проверка достаточности средств.
-    - Валидация данных (заглушка).
+    - Валидация данных.
     - Задача передается в очередь -> списание средств со счета.
     - Забирается воркером.
-    - Иммитация работы (sleep(2)).
-    - Симуляция сбоя 10% -> возврат средств на счет.
     - Сохранения результата в БД.
     """
     try:
-        # 1: Создаем задачу в БД со статусом WAITING (деньги спишутся внутри CRUD)
+        # получаем актуальную модель из БД
+        active_model = await MLModelCRUD.get_first_model(db_session)
+        # Создаем задачу в БД со статусом WAITING (деньги спишутся внутри CRUD)
         task = await MLTaskCRUD.create(
             db_session,
-            user_id=task_data.user_id,
-            model_id=task_data.model_id,
-            input_data=task_data.input_data
+            user_id=current_user.user_id, # ID из кук
+            model_id=active_model.model_id,
+            input_data=input_data.input_data
         )
 
-        # 2: Подготовка сообщения для RabbitMQ
-        payload = {
-            "task_id": str(task.task_id),
-            "features": {"input": task_data.input_data},
-            "model": task_data.model_id,
-            "timestamp": datetime.now().isoformat()
-        }
+        # Отправка в очередь
+        await send_to_rabbit(task.task_id, input_data.input_data, active_model.model_id)
 
-        # 3: Отправка в RabbitMQ
-        settings = get_settings()
-        connection = await connect(settings.RABBITMQ_URL)
-        async with connection:
-            channel = await connection.channel()
-            # durable=True — очередь сохранится после перезагрузки RabbitMQ
-            await channel.declare_queue("ml_tasks", durable=True)
-
-            await channel.default_exchange.publish(
-                Message(json.dumps(payload).encode()),
-                routing_key="ml_tasks"
-            )
-
-        # 4: Возвращаем ответ сразу, не дожидаясь ML
+        # Возвращаем ответ сразу, не дожидаясь завершения задачи
         return {
             "task_id": task.task_id,
             "status": TaskStatus.WAITING,
             "message": "Задача поставлена в очередь"
         }
-
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
