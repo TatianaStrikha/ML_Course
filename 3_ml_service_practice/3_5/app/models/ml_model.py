@@ -1,7 +1,7 @@
 # =============================================
 # ORM таблица Модель Машинного Обучения
 # =============================================
-from database.database import mapper_registry
+from app.models.registry import mapper_registry
 from sqlalchemy import Column, Integer, String, Numeric
 from decimal import Decimal
 

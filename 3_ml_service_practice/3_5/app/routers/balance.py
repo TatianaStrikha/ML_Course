@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.crud.balance import BalanceCRUD
 from app.crud.user import UserCRUD
-from  database.database import get_session
+from app.database import get_session
 import logging
 from app.crud.schemas import BalanceUpdateSchema, BalanceCurrentSchema, TransactionReadSchema
 from sqlalchemy.ext.asyncio import AsyncSession

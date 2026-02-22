@@ -11,19 +11,17 @@ sys.path.append(os.getcwd())
 from aio_pika import connect, IncomingMessage
 from app.crud.ml_task import MLTaskCRUD
 from app.models.enums import TaskStatus
-from database.database import get_session_local
+from app.database import get_session_local
 import logging
 from config import get_settings
 # необходим импорт моделей, чтобы SQLAlchemy знал о связях (Relationship)
 from app.models.user import User
-from app.models.balance import Balance
-from app.models.ml_task import MLTask
 from app.models.ml_model import MLModel
+from app.models.ml_task import MLTask
+from app.models.balance import Balance
 from app.models.transaction import Transaction
 import pymorphy3 # библиотека, которая выполняет роль ML-модели
 from ml_worker.dictionary import RUS_LABELS, ATTRIBUTES_ORDER
-import random
-
 
 # Инициализируем библиотеку один раз при старте воркера
 morph = pymorphy3.MorphAnalyzer()

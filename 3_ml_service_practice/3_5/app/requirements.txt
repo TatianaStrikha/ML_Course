@@ -1,9 +1,0 @@
-sqlalchemy
-asyncpg
-alembic
-pydantic
-pydantic-settings
-starlette
-fastapi
-uvicorn
-bcrypt==4.0.1

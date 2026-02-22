@@ -1,32 +1,20 @@
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
+from fastapi import APIRouter, Depends, status, Form, Request
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from app.auth.password_hash import PasswordHash
 from app.auth.access_token import get_current_user, get_optional_user, set_token_cookie, delete_token_cookie
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from database.database import get_session
+from app.database import get_session
 from app.crud.user import UserCRUD
 from app.crud.balance import BalanceCRUD
 from app.crud.ml_task import MLTaskCRUD
 from app.crud.ml_model import MLModelCRUD
-from app.crud.schemas import MLTaskReadSchema, MLTaskCreateSchema
+from app.crud.schemas import MLTaskCreateSchema
 from app.routers.ml_task import send_to_rabbit
 from app.crud.schemas import UserRegSchema
-from app.models.enums import TaskStatus
-import logging
-import json
-from datetime import datetime
-from aio_pika import connect, Message
-from config import get_settings
 from app.models.user import User
 from decimal import Decimal
-from fastapi.security import APIKeyCookie
-
-
-
 
 web_router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -35,7 +23,7 @@ templates = Jinja2Templates(directory="app/templates")
 @web_router.get("/", response_class=HTMLResponse)
 async def get_home_page(request: Request):
     """Главная страница (доступна всем)"""
-    return templates.TemplateResponse("home.html", {"request": request})
+    return templates.TemplateResponse(request, "home.html")
 
 
 @web_router.get("/signup", response_class=HTMLResponse)
@@ -48,7 +36,7 @@ async def signup_page(
     if user:
         return RedirectResponse(url="/profile", status_code=302)
     # иначе -страницу регистрации
-    return templates.TemplateResponse("signup.html", {"request": request})
+    return templates.TemplateResponse(request, "signup.html")
 
 
 
@@ -86,10 +74,7 @@ async def signup_handler(
     except (ValueError, ValidationError) as e:
         # Если ошибка (валидации или логики) — возвращаем форму с текстом ошибки
         error_msg = e.errors()[0]['msg'] if hasattr(e, 'errors') else str(e)
-        return templates.TemplateResponse("signup.html", {
-            "request": request,
-            "error": error_msg
-        })
+        return templates.TemplateResponse(request, "signup.html", {"error": error_msg })
 
 
 @web_router.get("/login", response_class=HTMLResponse)
@@ -103,7 +88,7 @@ async def login_page(
         return RedirectResponse(url="/profile", status_code=302)
 
     # Если нет - показываем форму входа
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html")
 
 
 @web_router.post("/login")
@@ -119,10 +104,7 @@ async def login_handler(
 
     if not user or not PasswordHash.verify(password, user.password_hash):
         # Если ошибка — возвращаем ту же страницу, но с текстом ошибки
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "error": "Неверный email или пароль"}
-        )
+        return templates.TemplateResponse(request,"login.html",{ "error": "Неверный email или пароль"})
 
     # 2. Если всё ок — создаем редирект в личный кабинет
     redirect = RedirectResponse(url="/profile", status_code=status.HTTP_303_SEE_OTHER)
@@ -151,8 +133,7 @@ async def get_profile_page(
     history = await MLTaskCRUD.get_history(db_session, user_id=user.user_id, limit=5)
 
     #  Отправляем в шаблон чистый объект баланса отдельно
-    return templates.TemplateResponse("profile.html", {
-        "request": request,
+    return templates.TemplateResponse( request, "profile.html", {
         "user": user,
         "balance": user_balance,
         "history": history,
@@ -170,8 +151,7 @@ async def top_up_page(
     # Получаем объект баланса из БД
     user_balance = await BalanceCRUD.get_any(db_session, user.user_id)
 
-    return templates.TemplateResponse("top_up.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "top_up.html", {
         "user": user,
         "balance": user_balance
     })
@@ -196,9 +176,7 @@ async def do_top_up(
 
     except ValueError as e:
         # Если юзер удален или ошибка — возвращаем форму с текстом ошибки
-        return templates.TemplateResponse("top_up.html", {
-            "request": request, "user": user, "error": str(e)
-        })
+        return templates.TemplateResponse(request, "top_up.html", {"user": user, "error": str(e)})
 
 @web_router.get("/profile/transactions", response_class=HTMLResponse)
 async def get_transactions_page(
@@ -209,8 +187,7 @@ async def get_transactions_page(
     """История транзакций"""
     transactions = await BalanceCRUD.get_user_transactions(db_session, user_id=user.user_id)
 
-    return templates.TemplateResponse("transactions.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "transactions.html", {
         "user": user,
         "transactions": transactions
     })
@@ -224,8 +201,7 @@ async def get_history_page(
 ):
     """История запросов"""
     history = await MLTaskCRUD.get_history(db_session, user_id=user.user_id)
-    return templates.TemplateResponse("history.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "history.html", {
         "user": user,
         "history": history
     })
@@ -277,8 +253,7 @@ async def web_predict_handler(
             # Ошибка ValueError (например, от базы про баланс)
             error_msg = str(e)
 
-        return templates.TemplateResponse("profile.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "profile.html", {
             "user": user,
             "balance": user_balance,
             "history": history,

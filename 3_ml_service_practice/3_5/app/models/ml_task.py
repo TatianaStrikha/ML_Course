@@ -3,7 +3,7 @@
 # =============================================
 import datetime
 from .enums import TaskStatus
-from database.database import mapper_registry
+from app.models.registry import mapper_registry
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
