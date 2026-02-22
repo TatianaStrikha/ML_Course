@@ -1,0 +1,17 @@
+alembic
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+pydantic
+pydantic-settings
+email-validator
+aio-pika
+python-multipart
+passlib[bcrypt]
+bcrypt==4.0.1
+jinja2
+PyJWT==2.8.0
+pytest-asyncio
+httpx
+aiosqlite

@@ -3,7 +3,7 @@
 # =============================================
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
-from database.database import mapper_registry
+from app.models.registry import mapper_registry
 
 @mapper_registry.mapped
 class User:

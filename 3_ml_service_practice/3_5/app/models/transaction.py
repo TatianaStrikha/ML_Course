@@ -2,7 +2,7 @@
 # ORM таблица Транзакций (для истории операций с балансом)
 # =============================================
 import datetime
-from database.database import mapper_registry
+from app.models.registry import mapper_registry
 from .enums import TransactionType
 from sqlalchemy import Column, Integer, String, Enum, Numeric, ForeignKey, DateTime
 from sqlalchemy.orm import relationship

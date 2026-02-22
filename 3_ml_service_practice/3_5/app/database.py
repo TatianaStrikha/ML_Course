@@ -1,18 +1,12 @@
-from sqlalchemy import text
-from sqlalchemy.orm import registry
+from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 import logging
 from config import get_settings
+from app.models.registry import metadata
 
 logger = logging.getLogger("uvicorn.error")
 
-# --- 1. Создание реестра и метаданных
-mapper_registry = registry()
-
-# Теперь можно получить метаданные
-metadata = mapper_registry.metadata
-
-# --- 2. Фабрика движка
+# Фабрика движка
 def get_engine():
     """
     Возвращает один и тот же экземпляр движка.
@@ -30,7 +24,7 @@ def get_engine():
     return get_engine._engine
 
 
-# --- 3. Фабрика сессий
+# Фабрика сессий
 def get_session_local():
     """
     Возвращает один и тот же экземпляр async_sessionmaker.
@@ -45,7 +39,7 @@ def get_session_local():
     return get_session_local._sessionmaker
 
 
-# --- 4. Генератор сессии для FastAPI зависимостей
+# Генератор сессии для FastAPI зависимостей
 async def get_session():
     """
     Генератор сессии для использования в FastAPI зависимостях.
@@ -62,15 +56,24 @@ async def get_session():
         await session.close()
 
 
-# --- 5. Инициализация БД: принимает движок как аргумент
-async def init_db(drop_all: bool = False, engine=None):
+#  Инициализация БД: принимает движок как аргумент
+async def init_db(drop_all: bool = False, seed_data: bool = True, engine=None):
     """
     Инициализация базы данных: создание или удаление таблиц.
+    Создание дефолтной ML-модели.
     Если engine не передан — использует get_engine().
     """
+    # Локальный импорт внутри функции для избежания цикличности
+    from app.models.balance import Balance
+    from app.models.ml_model import MLModel
+    from app.models.ml_task import MLTask
+    from app.models.transaction import Transaction
+    from app.models.user import User
+
     engine = engine or get_engine()
 
     async with engine.begin() as conn:
+        # удаление таблиц и создание пустых
         if drop_all:
             logger.info("Удаляем все существующие таблицы...")
             await conn.execute(text("SET session_replication_role = 'replica'"))
@@ -80,6 +83,31 @@ async def init_db(drop_all: bool = False, engine=None):
             logger.info("Создаём таблицы...")
 
         await conn.run_sync(metadata.create_all)
+
+    # создание дефолтной модели
+    if seed_data:
+        async with get_session_local()() as session:
+            # Проверяем наличие любой модели
+            logger.info("Проверка наличия в БД ML-модели...")
+            res = await session.execute(select(MLModel))
+            if not res.scalar_one_or_none():
+                logger.info("Создаём первую ML-модель по умолчанию...")
+
+                # Локальный импорт внутри функции для избежания цикличности
+                from app.crud.ml_model import MLModelCRUD
+                from app.crud.schemas import MLModelCreateSchema
+
+                default_data = MLModelCreateSchema(
+                    model_name="MorphoAnalyzer v1",
+                    cost_per_prediction=100.0,
+                    description="Морфологический анализ текста"
+                )
+                await MLModelCRUD.create(session, default_data)
+                logger.info("Дефолтная модель успешно добавлена.")
+            else:
+                logger.info("В БД есть ML-модель.")
+
+
 
     logger.info("БД инициализирована.")
 

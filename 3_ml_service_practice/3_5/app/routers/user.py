@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Response
 from app.crud.user import UserCRUD
-from  database.database import get_session
+from app.database import get_session
 from typing import Dict
 import logging
 from app.crud.schemas import UserRegSchema, UserAuthSchema, UserReadSchema

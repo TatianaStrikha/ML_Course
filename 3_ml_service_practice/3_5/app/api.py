@@ -1,10 +1,9 @@
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.user import user_router
 from app.routers.balance import balance_router
 from app.routers.ml_model import ml_model_router
 from app.routers.ml_task import ml_task_router
-from database.database import init_db
+from app.database import init_db
 from config import get_settings
 import uvicorn
 import logging
@@ -12,7 +11,7 @@ from contextlib import asynccontextmanager
 import sys, os
 from fastapi.templating import Jinja2Templates
 from app.routers.web import web_router
-from fastapi import FastAPI, Request, HTTPException, status
+from fastapi import FastAPI, Request, HTTPException, status, APIRouter
 from fastapi.responses import JSONResponse, RedirectResponse
 # Добавляем текущую директорию в путь Python
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -26,13 +25,18 @@ settings = get_settings()
 
 templates = Jinja2Templates(directory="app/templates")
 
+health_router = APIRouter()
+@health_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Инициализация БД...")
     try:
-        await init_db(drop_all=False)  # Асинхронная инициализация
+        await init_db(drop_all=False, seed_data=True)
     except Exception as e:
         logger.error(f"Ошибка при инициализации БД: {str(e)}")
         raise
@@ -64,6 +68,7 @@ def create_application() -> FastAPI:
     )
 
     # Регистрация эндпоинтов
+    app.include_router(health_router, tags=['Проверка состояния'])
     app.include_router(user_router, prefix='/users', tags=['Пользователи'])
     app.include_router(balance_router, prefix='/balance', tags=['Баланс'])
     app.include_router(ml_model_router, prefix='/ml_model', tags=['ML-модели'])
@@ -90,6 +95,7 @@ def create_application() -> FastAPI:
         )
 
 
+
     return app
 
 app = create_application()
@@ -100,10 +106,19 @@ if __name__ ==  '__main__':
     logging.basicConfig(level=logging.DEBUG)
     uvicorn.run(
         'app.api:app',
-        host='localhost',  # '0.0.0.0'
+        host='localhost',
         port=8080,
         reload=True,
         log_level="info"
     )
 
+# docker-compose down
+# docker-compose up --build
+# docker-compose up
+# docker-compose up -d  Запустить в фоновом режиме
+
+# docker-compose restart если были измеения в коде
+
+# docker-compose stop
+# docker-compose start
 

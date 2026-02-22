@@ -4,7 +4,7 @@ from fastapi import HTTPException, status, Request, Depends
 from datetime import datetime, timezone, timedelta
 from fastapi import Response
 from app.crud.user import UserCRUD
-from database.database import get_session
+from app.database import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 
