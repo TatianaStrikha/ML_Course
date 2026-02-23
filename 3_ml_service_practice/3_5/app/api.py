@@ -112,13 +112,5 @@ if __name__ ==  '__main__':
         log_level="info"
     )
 
-# docker-compose down
-# docker-compose up --build
-# docker-compose up
-# docker-compose up -d  Запустить в фоновом режиме
 
-# docker-compose restart если были измеения в коде
-
-# docker-compose stop
-# docker-compose start
 

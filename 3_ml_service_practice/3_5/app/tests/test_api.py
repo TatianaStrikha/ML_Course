@@ -1,7 +1,7 @@
 # =============================================
 # Тест api эндпоинтов
 # =============================================
-# app/tests/test_api.py - запуск
+# pytest app/tests/test_api.py - запуск
 import pytest
 from app.crud.ml_task import MLTaskCRUD
 

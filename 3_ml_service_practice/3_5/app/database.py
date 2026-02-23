@@ -4,6 +4,7 @@ import logging
 from config import get_settings
 from app.models.registry import metadata
 
+
 logger = logging.getLogger("uvicorn.error")
 
 # Фабрика движка
@@ -59,7 +60,8 @@ async def get_session():
 #  Инициализация БД: принимает движок как аргумент
 async def init_db(drop_all: bool = False, seed_data: bool = True, engine=None):
     """
-    Инициализация базы данных: создание или удаление таблиц.
+    Инициализация базы данных:
+    Создание или удаление таблиц.
     Создание дефолтной ML-модели.
     Если engine не передан — использует get_engine().
     """
