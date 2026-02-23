@@ -53,11 +53,6 @@ async def process_task(message: IncomingMessage):
                 await MLTaskCRUD.update_status(db_session, task_id, TaskStatus.IN_PROGRESS)
                 await db_session.commit()
 
-                #  имитация сбоя для тестирования работы функции refund
-                # if random.random() < 0.5:
-                #     logger.warning(f"Имитация сбоя для задачи {task_id}...")
-                #     trigger_error = 1 / 0
-
                     # 2. Работа ML-модели: морфологический разбор
                 # Разбиваем текст на слова и очищаем от знаков препинания
                 words = [w.strip('.,!?-()":;').lower() for w in user_text.split()]

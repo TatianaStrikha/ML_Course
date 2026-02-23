@@ -3,11 +3,6 @@
 # =============================================
 from enum import Enum
 
-class UserRole(Enum):
-    """Роли пользователей в системе."""
-    USER = "user"
-    ADMIN = "admin"
-
 class TransactionType(Enum):
     """Типы финансовых транзакций."""
     TOP_UP = "top_up"  # пополнение баланса
@@ -20,4 +15,4 @@ class TaskStatus(Enum):
     IN_PROGRESS = "InProgress"
     COMPLETED = "Completed"
     FAILED = "Failed"
-    VALIDATION_ERROR = "ValidationError"
+
